@@ -27,10 +27,13 @@ trait ImportTracking { self: Analyzer =>
   // Associate info with info at import keyword, plus owner for warning filtering. `import a.x, b.x` -> `(b, a, owner)`
   private type TrackedInfo = (ImportInfo, ImportInfo, Symbol)
 
-  private val usedSelectors = mutable.Map.empty[ImportInfo, Set[ImportSelector]].withDefaultValue(Set.empty)
+  private val usedSelectors = mutable.Map.empty[ImportInfo, mutable.Set[ImportSelector]]
   private val importInfos   = mutable.Map.empty[CompilationUnit, List[TrackedInfo]].withDefaultValue(Nil)
 
-  def recordImportUsage(info: ImportInfo, sel: ImportSelector): Unit = usedSelectors(info) += sel
+  def recordImportUsage(info: ImportInfo, sel: ImportSelector): Unit = usedSelectors.get(info) match {
+    case Some(sels) => sels.addOne(sel)
+    case None => usedSelectors.put(info, mutable.Set(sel))
+  }
 
   def recordImportContext(ctx: Context): Unit = ctx.firstImport.foreach { info =>
     val keyword =
@@ -61,27 +64,14 @@ trait ImportTracking { self: Analyzer =>
       def keyInfoOfTracked(info: TrackedInfo): ImportInfo = info._2
       def keyInfoOfCulled(culled: Culled): ImportInfo = keyInfoOfTracked(culled._2)
       def infoOfCulled(culled: Culled): ImportInfo = culled._2._1
-      val unused: List[Culled] = {
-        var res = List.empty[Culled]
-        def cull(infos: List[TrackedInfo]): Unit =
-          infos match {
-            case (tracked @ (info, _, _)) :: infos =>
-              val used = usedSelectors.remove(info).getOrElse(Set.empty)
-              def checkSelectors(selectors: List[ImportSelector]): Unit =
-                selectors match {
-                  case selector :: selectors =>
-                    checkSelectors(selectors)
-                    if (!selector.isMask && !used(selector))
-                      res ::= selector -> tracked
-                  case _ =>
-                }
-              checkSelectors(info.tree.selectors)
-              cull(infos)
-            case _ =>
-          }
-        cull(infos)
-        res
-      }
+      val unused: List[Culled] =
+        infos.flatMap {
+          case (tracked @ (info, _, _)) =>
+            val used = usedSelectors.remove(info).getOrElse(mutable.Set.empty)
+            info.tree.selectors.collect {
+              case selector if !selector.isMask && !used(selector) => selector -> tracked
+            }
+        }.sortBy { case (_, (info, _, _)) => info.pos.start } // stable sort on info.pos preserves order of selectors
       def emit(culled: Culled, actions: List[CodeAction]): Unit = culled match {
         case (selector, (info, _, owner)) =>
           val pos = info.posOf(selector)

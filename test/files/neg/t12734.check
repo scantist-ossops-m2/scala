@@ -6,5 +6,7 @@ did you mean collection?
 [WARNING] [RangePosition(t12734.scala, 127, 127, 133)]: Unused import
 [WARNING] [RangePosition(t12734.scala, 167, 167, 168)]: Unused import
 [WARNING] [RangePosition(t12734.scala, 193, 193, 194)]: Unused import
-4 warnings
+[WARNING] [RangePosition(t12734.scala, 397, 397, 403)]: Unused import
+[WARNING] [RangePosition(t12734.scala, 489, 489, 494)]: Unused import
+6 warnings
 2 errors
