@@ -57,7 +57,7 @@ object AllocationTest {
   }
 
   private def costOf[T](fn: => T, tpe: String): Long = {
-    val cost = coster.calcAllocationInfo(fn, 0, "", false).min
+    val cost = coster.calcAllocationInfo(fn, 0, "", ignoreEqualCheck = false).min
     println(s"cost of tracking allocations - cost of $tpe = $cost")
     cost
   }
