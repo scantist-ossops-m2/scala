@@ -310,6 +310,7 @@ trait JavaParsers extends ast.parser.ParsersCommon with JavaScanners {
             t.updateAttachment(RootSelection)
           while (in.token == DOT) {
             in.nextToken()
+            annotations() // TODO: fix scala/bug#9883 (JSR 308)
             t = typeArgs(atPos(in.currentPos)(typeSelect(t, ident())))
           }
           convertToTypeId(t)
