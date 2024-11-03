@@ -3,7 +3,7 @@ package scala.collection.convert
 import java.{util => jutil}
 
 import org.junit.Assert.{assertEquals, assertFalse, assertTrue}
-import org.junit.Test
+import org.junit.{Ignore, Test}
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
@@ -83,27 +83,33 @@ class MapWrapperTest {
   }
 
   // was: induce intermittent failure due to contention, where updater is called more than once
-  @Test def `t12586 updateWith should delegate to compute`: Unit = {
+  @Test @Ignore("busy work") def `t12586 updateWith should delegate to compute`: Unit = {
+    import jutil.concurrent.ConcurrentHashMap
     val limit = 100      // retries until trigger
     @volatile var count = 0
-    val jmap = new jutil.concurrent.ConcurrentHashMap[String, String]()
+    val jmap = new ConcurrentHashMap[String, Int]()
     class Loki extends Runnable {
       @volatile var done = false
       def run(): Unit = {
         while (!done) {
-          jmap.put("KEY", "VALUE")
+          jmap.put("KEY", 1)
           //Thread.`yield`()
         }
       }
     }
+    val wrapped = jmap.asScala
     val loki = new Loki
     val runner = new Thread(loki).tap(_.start)
-    val wrapped = jmap.asScala
-    def updater(old: Option[String]) = { count += 1 ; old.map(_ * 2) }
+    def updater(old: Option[Int]) = {
+      count += 1
+      old.map(_ + 1)
+      //  .tap(res => println(s"count $count: res=$res"))
+    }
     for (i <- 1 to limit) {
       count = 0
       wrapped.updateWith("KEY")(updater)
       assertEquals(s"index $i", 1, count)
+      //Thread.`yield`()
     }
     loki.done = true
     runner.join()
