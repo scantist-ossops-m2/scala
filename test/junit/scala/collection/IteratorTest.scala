@@ -1049,4 +1049,27 @@ class IteratorTest {
       slid.next()
     }
   }
+
+  // scala/bug#3516
+  @Test def `iterator span followed by toSeq`(): Unit = {
+    def spanA(list: List[Int], x: Int) =
+      list.iterator.span(_ == x) match {
+        case (a,b) => (a.toList, b.toList)
+      }
+
+    def spanB(list: List[Int], x: Int) =
+      list.iterator.span(_ == x) match {
+        case (a,b) => (a.toSeq, b.toSeq) match {
+          case (a,b) => (a.toList, b.toList)
+        }
+      }
+
+    assert(spanA(List(1, 2, 1), 1) == (List(1), List(2, 1)))
+    assert(spanB(List(1, 2, 1), 1) == (List(1), List(2, 1)))
+
+    val original = List(1, 2, 3).iterator
+    val (front, back) = original.span(_ != 2)
+    back.drop(1)
+    assert(front.toList == List(1))
+  }
 }
