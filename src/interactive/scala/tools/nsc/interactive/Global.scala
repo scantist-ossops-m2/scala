@@ -51,6 +51,7 @@ trait InteractiveAnalyzer extends Analyzer {
   override def newNamer(context: Context): InteractiveNamer = new Namer(context) with InteractiveNamer
 
   trait InteractiveTyper extends Typer {
+    override def isInteractive = true
     override def canAdaptConstantTypeToLiteral = false
     override def canTranslateEmptyListToNil    = false
     override def missingSelectErrorTree(tree: Tree, qual: Tree, name: Name): Tree = tree match {

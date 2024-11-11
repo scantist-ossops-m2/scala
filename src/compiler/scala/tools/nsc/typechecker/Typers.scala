@@ -215,6 +215,7 @@ trait Typers extends Adaptations with Tags with TypersTracking with PatternTyper
     }
 
     /** Overridden to false in scaladoc and/or interactive. */
+    def isInteractive                 = false
     def canAdaptConstantTypeToLiteral = true
     def canTranslateEmptyListToNil    = true
     def missingSelectErrorTree(tree: Tree, @unused qual: Tree, @unused name: Name): Tree = tree
@@ -3859,7 +3860,7 @@ trait Typers extends Adaptations with Tags with TypersTracking with PatternTyper
                   tryTupleApply orElse {
                     // If we don't have enough arguments we still try to type the arguments that we do have, in order to
                     // propagate known types throughout the subtree to support queries in the presentation compiler.
-                    if (missing.nonEmpty) {
+                    if (isInteractive && missing.nonEmpty) {
                       // You would expect `missing` to be non-empty in this branch, but `addDefaults` has a corner case
                       // for t3649 that causes it to drop some params from `missing` (see `addDefaults` for the reasoning).
                       val allArgsPlusMissingErrors = allArgs ++ missing.map(s => NamedArg(Ident(s.name), gen.mkZero(NothingTpe)))
