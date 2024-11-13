@@ -424,11 +424,8 @@ abstract class TreeGen {
         if (vparamss1.isEmpty || !vparamss1.head.isEmpty && vparamss1.head.head.mods.isImplicit)
           vparamss1 = List() :: vparamss1
         val superCall = pendingSuperCall // we can't know in advance which of the parents will end up as a superclass
-                                         // this requires knowing which of the parents is a type macro and which is not
-                                         // and that's something that cannot be found out before typer
-                                         // (the type macros aren't in the trunk yet, but there is a plan for them to land there soon)
                                          // this means that we don't know what will be the arguments of the super call
-                                         // therefore here we emit a dummy which gets populated when the template is named and typechecked
+                                         // here we emit a dummy which gets populated when the template is named and typechecked
         Some(
           atPos(wrappingPos(superPos, lvdefs ::: vparamss1.flatten).makeTransparent) (
             DefDef(constrMods, nme.CONSTRUCTOR, List(), vparamss1, TypeTree(), Block(lvdefs ::: List(superCall), mkLiteralUnit))))
@@ -667,8 +664,14 @@ abstract class TreeGen {
      * the limits given by pat and body.
      */
     def makeClosure(pos: Position, pat: Tree, body: Tree): Tree = {
-      def wrapped  = wrappingPos(List(pat, body))
-      def splitpos = (if (pos != NoPosition) wrapped.withPoint(pos.point) else pos).makeTransparent
+      val splitpos = {
+        val wrapped = wrappingPos(List(pat, body))
+        // ignore proposed point if not in range
+        val res =
+          if (pos != NoPosition && wrapped.start <= pos.point && pos.point < wrapped.end) wrapped.withPoint(pos.point)
+          else pos
+        res.makeTransparent
+      }
       matchVarPattern(pat) match {
         case Some((name, tpt)) =>
           val p = atPos(pat.pos) {

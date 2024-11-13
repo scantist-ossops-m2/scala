@@ -313,7 +313,8 @@ trait MatchOptimization extends MatchTreeMaking with MatchApproximation {
               (Bind(binder, origPatWithoutBind), unifiedBody)
             }
 
-          atPos(commonPattern.pos)(CaseDef(pat, EmptyTree, guardedBodySubst))
+          val samePos = wrappingPos(same.flatMap(k => List(k.pat, k.body)))
+          atPos(samePos)(CaseDef(pat, EmptyTree, guardedBodySubst))
         }
 
         // requires cases.exists(isGuardedCase) (otherwise the rewrite is pointless)
