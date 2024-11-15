@@ -481,8 +481,7 @@ trait MatchOptimization extends MatchTreeMaking with MatchApproximation {
             else {
               def wrapInDefaultLabelDef(cd: CaseDef): CaseDef =
                 if (needDefaultLabel) deriveCaseDef(cd){ b =>
-                  // TODO: can b.tpe ever be null? can't really use pt, see e.g. pos/t2683 or cps/match1.scala
-                  defaultLabel setInfo MethodType(Nil, if (b.tpe != null) b.tpe.deconst else pt)
+                  defaultLabel setInfo MethodType(Nil, b.tpe.deconst)
                   LabelDef(defaultLabel, Nil, b)
                 } else cd
 
@@ -536,7 +535,9 @@ trait MatchOptimization extends MatchTreeMaking with MatchApproximation {
       }
 
       def defaultSym: Symbol = scrutSym
-      def defaultBody: Tree  = { matchFailGenOverride map (gen => gen(REF(scrutSym))) getOrElse Throw(MatchErrorClass.tpe, REF(scrutSym)) }
+      def defaultBody: Tree  = typer.typed(matchFailGenOverride
+        .map(gen => gen(REF(scrutSym)))
+        .getOrElse(Throw(MatchErrorClass.tpe, REF(scrutSym))))
       def defaultCase(scrutSym: Symbol = defaultSym, guard: Tree = EmptyTree, body: Tree = defaultBody): CaseDef = { atPos(body.pos) {
         (DEFAULT IF guard) ==> body
       }}
@@ -583,7 +584,7 @@ trait MatchOptimization extends MatchTreeMaking with MatchApproximation {
       }
 
       lazy val defaultSym: Symbol = freshSym(NoPosition, ThrowableTpe)
-      def defaultBody: Tree       = Throw(CODE.REF(defaultSym))
+      def defaultBody: Tree       = typer.typed(Throw(CODE.REF(defaultSym)))
       def defaultCase(scrutSym: Symbol = defaultSym, guard: Tree = EmptyTree, body: Tree = defaultBody): CaseDef = { import CODE._; atPos(body.pos) {
         (CASE (Bind(scrutSym, Typed(Ident(nme.WILDCARD), TypeTree(ThrowableTpe)))) IF guard) ==> body
       }}
