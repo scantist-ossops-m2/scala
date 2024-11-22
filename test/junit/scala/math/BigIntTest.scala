@@ -30,7 +30,7 @@ class BigIntTest {
 
   @Test def `/% respects BigInteger`: Unit = assertThrows[ArithmeticException](bigint /% BigInt(0), _.contains("/ by zero"))
 
-  @Test def `testBit respects BigInteger`: Unit = assertThrows[ArithmeticException](bigint.testBit(-3), _.contains("Negative bit address"))
+  @Test def `testBit respects BigInteger`: Unit = assertThrows[ArithmeticException](BigInt(10).testBit(-3), _.contains("Negative bit address"))
 
   @Test def `testBit 0`: Unit = assertFalse(bigint.testBit(0))
 
