@@ -233,4 +233,10 @@ class BuildFromTest {
     //
     //
   }
+  // additional test for previous, via scala/bug#12104
+  locally {
+    import scala.concurrent._, ExecutionContext.Implicits._
+    Future.traverse(List(1))(_ => Future.failed(new NoSuchElementException))
+    // diverging implicit expansion for type scala.collection.BuildFrom[List[Int],B,List[B] starting with method Tuple9 in object Ordering
+  }
 }
