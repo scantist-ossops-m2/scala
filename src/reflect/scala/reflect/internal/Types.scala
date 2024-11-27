@@ -4037,13 +4037,13 @@ trait Types
   private[this] val copyRefinedTypeSSM: ReusableInstance[SubstSymMap] =
     ReusableInstance[SubstSymMap](SubstSymMap(), enabled = isCompilerUniverse)
 
-  def copyRefinedType(original: RefinedType, parents: List[Type], decls: Scope) =
-    if ((parents eq original.parents) && (decls eq original.decls)) original
+  def copyRefinedType(original: RefinedType, parents: List[Type], decls: Scope, owner: Symbol = null) =
+    if ((parents eq original.parents) && (decls eq original.decls) && (owner eq null)) original
     else {
-      val owner = original.typeSymbol.owner
+      val newOwner = if (owner != null) owner else original.typeSymbol.owner
       val result =
         if (isIntersectionTypeForLazyBaseType(original)) intersectionTypeForLazyBaseType(parents)
-        else refinedType(parents, owner)
+        else refinedType(parents, newOwner)
       if (! decls.isEmpty){
         val syms1 = decls.toList
         for (sym <- syms1)
