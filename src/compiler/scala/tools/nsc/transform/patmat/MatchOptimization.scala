@@ -481,8 +481,12 @@ trait MatchOptimization extends MatchTreeMaking with MatchApproximation {
             else {
               def wrapInDefaultLabelDef(cd: CaseDef): CaseDef =
                 if (needDefaultLabel) deriveCaseDef(cd){ b =>
-                  defaultLabel setInfo MethodType(Nil, b.tpe.deconst)
-                  LabelDef(defaultLabel, Nil, b)
+                  // If `b` is synthesized in SwitchMaker (by `collapseGuardedCases` or by `defaultCase`)
+                  // it is not yet typed. In order to assign the correct type to the label, type the case body.
+                  // See scala/scala#10926, pos/t13060.scala.
+                  val b1 = if (b.tpe == null) typer.typed(b, pt) else b
+                  defaultLabel setInfo MethodType(Nil, b1.tpe.deconst)
+                  LabelDef(defaultLabel, Nil, b1)
                 } else cd
 
               val last = collapsed.last
@@ -535,9 +539,9 @@ trait MatchOptimization extends MatchTreeMaking with MatchApproximation {
       }
 
       def defaultSym: Symbol = scrutSym
-      def defaultBody: Tree  = typer.typed(matchFailGenOverride
+      def defaultBody: Tree  = matchFailGenOverride
         .map(gen => gen(REF(scrutSym)))
-        .getOrElse(Throw(MatchErrorClass.tpe, REF(scrutSym))))
+        .getOrElse(Throw(MatchErrorClass.tpe, REF(scrutSym)))
       def defaultCase(scrutSym: Symbol = defaultSym, guard: Tree = EmptyTree, body: Tree = defaultBody): CaseDef = { atPos(body.pos) {
         (DEFAULT IF guard) ==> body
       }}
@@ -584,7 +588,7 @@ trait MatchOptimization extends MatchTreeMaking with MatchApproximation {
       }
 
       lazy val defaultSym: Symbol = freshSym(NoPosition, ThrowableTpe)
-      def defaultBody: Tree       = typer.typed(Throw(CODE.REF(defaultSym)))
+      def defaultBody: Tree       = Throw(CODE.REF(defaultSym))
       def defaultCase(scrutSym: Symbol = defaultSym, guard: Tree = EmptyTree, body: Tree = defaultBody): CaseDef = { import CODE._; atPos(body.pos) {
         (CASE (Bind(scrutSym, Typed(Ident(nme.WILDCARD), TypeTree(ThrowableTpe)))) IF guard) ==> body
       }}

@@ -8,3 +8,19 @@ class C {
     println()
   }
 }
+
+class D {
+  def foo(): Unit = ()
+  def b: Boolean = false
+
+  def bug(x: Int): Unit = {
+    (x: @annotation.switch) match {
+      case 2 if b =>
+        foo()
+      case _ if b =>
+        foo()
+      case _ =>
+        foo()
+    }
+  }
+}
